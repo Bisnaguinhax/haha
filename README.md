@@ -18,7 +18,6 @@
 
 <div align="center">
   <h3>🚀 Pipeline de Dados Corporativo | 🔐 Segurança Enterprise | 📊 Analytics em Tempo Real</h3>
-  <p><em>Demonstração de excelência em Engenharia de Dados através de uma arquitetura completa, segura e escalável</em></p>
 </div>
 
 ---
@@ -36,7 +35,7 @@
 
 ## I. 🎯 Objetivo do Case
 
-### Desafio Empresarial
+### Desafio
 
 O objetivo deste projeto é demonstrar a construção de um **pipeline de dados ponta a ponta** em uma arquitetura 100% local e open-source, garantindo total reprodutibilidade. A solução abrange desde a ingestão de múltiplas fontes até a criação de um dashboard analítico interativo, com um foco rigoroso em **segurança**, **qualidade**, **governança** e **automação**.
 
@@ -316,7 +315,7 @@ A arquitetura implementada é **production-ready** e pode ser facilmente adaptad
 #### Passo 1: Clonagem do Repositório
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/pipeline-dados-seguro.git
+git clone https://github.com.git
 cd pipeline-dados-seguro
 
 # Verifique a estrutura do projeto
