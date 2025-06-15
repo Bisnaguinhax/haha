@@ -1,194 +1,166 @@
-# ===============================================================================
-# IMPORTAÇÕES PARA SISTEMA DE AUDITORIA EMPRESARIAL
-# ===============================================================================
 import logging
 import csv
 import os
 from datetime import datetime, timedelta
-import pandas as pd  # Para análise de dados de auditoria
+import pandas as pd
 import json
 
 class AuditLogger:
-    """
-    Sistema de Auditoria Empresarial para Compliance.
-    
-    CARACTERÍSTICAS TÉCNICAS:
-    - Dual logging: CSV estruturado + Python logging
-    - Campos customizados para LGPD e SOX
-    - Rotação automática de logs
-    - Análise de padrões suspeitos
-    
-    COMPLIANCE FRAMEWORKS SUPORTADOS:
-    - LGPD (Lei Geral de Proteção de Dados)
-    - SOX (Sarbanes-Oxley)
-    - PCI-DSS
-    - ISO 27001
-    """
-    
     def __init__(self, audit_file_path: str, system_log_file_path: str):
-        """
-        Inicializa sistema de auditoria com validação rigorosa.
-        
-        FAIL-FAST PRINCIPLE: Falha imediata se caminhos inválidos
-        NOTA PARA BANCA: Logs são críticos - sem eles, sistema não inicia
-        """
         self.audit_file_path = audit_file_path
         self.system_log_file_path = system_log_file_path
 
-        # Validação crítica de entrada - logs são obrigatórios
         if not self.audit_file_path or not self.system_log_file_path:
             error_msg = f"CRÍTICO (AuditLogger): Caminhos de log não foram fornecidos."
             print(error_msg) 
             raise ValueError(error_msg)
 
-        # Garantia de existência dos diretórios de log
         self._ensure_log_paths_exist()
-        
-        # ===============================================================================
-        # CONFIGURAÇÃO DO SISTEMA DE LOGGING PYTHON
-        # ===============================================================================
-        # Logger nomeado para identificação única no sistema
         self.logger = logging.getLogger('security_system.AuditLogger_vFINAL')
-        self.logger.propagate = False  # Evita duplicação de logs
+        self.logger.propagate = False
         self.logger.setLevel(logging.INFO)
 
-        # Configuração única de handlers para evitar duplicação
         if not self.logger.handlers:
             self._setup_file_handlers()
         
-        # Inicialização do arquivo CSV de auditoria
         self._init_audit_csv_file()
 
     def _ensure_log_paths_exist(self):
-        """
-        Garante que diretórios de log existem.
-        
-        PADRÃO DE SEGURANÇA: Criação com permissões restritivas
-        """
         for file_path in [self.audit_file_path, self.system_log_file_path]:
             if file_path:
-                # Extração do diretório pai
                 directory = os.path.dirname(file_path)
                 if directory and not os.path.exists(directory):
-                    # Criação com permissões seguras
                     os.makedirs(directory, exist_ok=True)
 
     def _setup_file_handlers(self):
-        """
-        Configura handlers de arquivo para logging.
-        
-        FORMATO PERSONALIZADO: timestamp|level|component|message
-        ENCODING: UTF-8 para suporte internacional
-        """
         try:
-            # Handler para arquivo de log do sistema
-            handler = logging.FileHandler(self.system_log_file_path, 
-                                          mode='a', 
-                                          encoding='utf-8')
-            
-            # Formatter customizado para análise posterior
-            formatter = logging.Formatter(
-                '%(asctime)s|%(levelname)s|%(name)s|%(message)s', 
-                datefmt='%Y-%m-%d %H:%M:%S'
-            )
+            handler = logging.FileHandler(self.system_log_file_path, mode='a', encoding='utf-8')
+            formatter = logging.Formatter('%(asctime)s|%(levelname)s|%(name)s|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
         except Exception as e:
-            # Falha crítica - sistema não pode operar sem logs
             print(f"AuditLogger: Falha ao configurar handler: {e}")
 
     def _init_audit_csv_file(self):
-        """
-        Inicializa arquivo CSV de auditoria com cabeçalhos estruturados.
-        
-        ESTRUTURA PARA COMPLIANCE:
-        - timestamp: Marca temporal precisa
-        - user: Identificação do usuário (LGPD)
-        - action: Ação executada 
-        - compliance_status: Status para LGPD
-        - risk_level: Nível de risco da operação
-        - stack_trace_needed: Flag para debug
-        """
-        # Verifica se precisa criar cabeçalho
-        write_header = (not os.path.exists(self.audit_file_path) or 
-                        os.path.getsize(self.audit_file_path) == 0)
-        
+        write_header = not os.path.exists(self.audit_file_path) or os.path.getsize(self.audit_file_path) == 0
         if write_header:
             with open(self.audit_file_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
-                # Cabeçalhos estruturados para compliance
-                writer.writerow([
-                    'timestamp',            # ISO timestamp
-                    'level',                # Log level (INFO, WARNING, ERROR, CRITICAL)
-                    'dag_id',               # Airflow DAG identifier
-                    'task_id',              # Airflow Task identifier  
-                    'user',                 # User/process identifier
-                    'action',               # Action performed
-                    'details',              # Detailed description
-                    'compliance_status',    # LGPD compliance status
-                    'risk_level',           # Risk assessment
-                    'service',              # Service/component
-                    'error_message',        # Error details if applicable
-                    'stack_trace_needed'    # Debug flag
-                ])
+                writer.writerow(['timestamp', 'level', 'dag_id', 'task_id', 'user', 'action', 'details', 'compliance_status', 'risk_level', 'service', 'error_message', 'stack_trace_needed'])
 
     def log(self, message: str, level: str = "INFO", **kwargs):
-        """
-        Método principal de logging com auditoria estruturada.
-        
-        DUAL LOGGING APPROACH:
-        1. CSV estruturado para análise e compliance
-        2. Python logging para integração com ferramentas
-        
-        PARÂMETROS DINÂMICOS (**kwargs):
-        - dag_id: ID da DAG do Airflow
-        - task_id: ID da Task do Airflow
-        - user: Usuário executando a ação
-        - action: Tipo de ação (padronizado)
-        - compliance_status: Status LGPD
-        - risk_level: Nível de risco
-        """
-        # ===============================================================================
-        # ESTRUTURAÇÃO DOS DADOS DE AUDITORIA
-        # ===============================================================================
-        log_data = {
-            'timestamp': datetime.now().isoformat(),
-            'level': level.upper(),
-            'dag_id': kwargs.get('dag_id', 'system'),
-            'task_id': kwargs.get('task_id', 'system'),
-            'user': kwargs.get('user', 'airflow_process'),
-            'action': kwargs.get('action', 'GENERIC_EVENT'),
-            'details': message,
-            'compliance_status': kwargs.get('status', 'LGPD_NA'),
-            'risk_level': kwargs.get('risk_level', level.upper()),
-            'service': kwargs.get('service', 'N/A'),
-            'error_message': kwargs.get('error_message', ''),
-            'stack_trace_needed': kwargs.get('stack_trace_needed', False)
-        }
-        
+        log_data = {'timestamp': datetime.now().isoformat(), 'level': level.upper(), 'dag_id': kwargs.get('dag_id', 'system'), 'task_id': kwargs.get('task_id', 'system'), 'user': kwargs.get('user', 'airflow_process'), 'action': kwargs.get('action', 'GENERIC_EVENT'), 'details': message, 'compliance_status': kwargs.get('status', 'LGPD_NA'), 'risk_level': kwargs.get('risk_level', level.upper()), 'service': kwargs.get('service', 'N/A'), 'error_message': kwargs.get('error_message', ''), 'stack_trace_needed': kwargs.get('stack_trace_needed', False)}
         try:
-            # ===============================================================================
-            # PERSISTÊNCIA EM CSV PARA ANÁLISE ESTRUTURADA
-            # ===============================================================================
             with open(self.audit_file_path, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=log_data.keys())
-                
-                # Adiciona cabeçalho se arquivo vazio (safety check)
-                if f.tell() == 0: 
-                    writer.writeheader()
-                
-                # Escreve registro de auditoria
+                if f.tell() == 0: writer.writeheader()
                 writer.writerow(log_data)
-            
-            # ===============================================================================
-            # LOGGING PYTHON PARA INTEGRAÇÃO COM FERRAMENTAS
-            # ===============================================================================
-            # Usa o nível apropriado ou fallback para INFO
-            log_method = getattr(self.logger, level.lower(), self.logger.info)
-            log_method(f"ACTION: {log_data['action']} | DETAILS: {message}")
-            
+            getattr(self.logger, level.lower(), self.logger.info)(f"ACTION: {log_data['action']} | DETAILS: {message}")
         except Exception as e:
-            # FALHA CRÍTICA: Se auditoria falha, todo o sistema deve parar
             print(f"FALHA CRÍTICA NO LOGGER DE AUDITORIA: {e}")
-            # Em produção: enviar alerta para equipe de segurança
-            
+    
+    def generate_report(self, start_date: str, end_date: str) -> dict:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            end_dt = datetime.fromisoformat(end_date)
+            if not os.path.exists(self.audit_file_path):
+                 return {"error": "Arquivo de auditoria não encontrado.", "periodo": f"{start_date} a {end_date}"}
+            df = pd.read_csv(self.audit_file_path, parse_dates=['timestamp'], infer_datetime_format=True)
+            if df.empty:
+                return {"message": "Arquivo de auditoria vazio", "periodo": f"{start_date} a {end_date}"}
+            df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+            mask = (df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)
+            period_df = df.loc[mask].copy()
+            if period_df.empty:
+                return {"message": "Nenhum evento encontrado para o período", "periodo": f"{start_date} a {end_date}"}
+            total_events = len(period_df)
+            compliance_ok_count = period_df[period_df['compliance_status'] == 'LGPD_OK'].shape[0]
+            report = {'periodo': f"{start_date} a {end_date}", 'total_eventos': total_events, 'distribuicao_acoes': period_df['action'].value_counts().to_dict(), 'taxa_conformidade_lgpd': round((compliance_ok_count / total_events * 100) if total_events > 0 else 0, 2), 'eventos_risco_alto': period_df[period_df['risk_level'] == 'HIGH'].shape[0], 'principais_violacoes': period_df[period_df['compliance_status'] != 'LGPD_OK']['details'].value_counts().head(5).to_dict(), 'usuarios_ativos': period_df['user'].nunique(), 'detalhes_eventos_criticos': period_df[period_df['level'].isin(['ERROR', 'CRITICAL'])].to_dict(orient='records')}
+            self._generate_authority_report(period_df)
+            self.log(f"Relatório de auditoria gerado para o período {start_date} a {end_date}", action="AUDIT_REPORT_GEN", details=json.dumps({'total_eventos': report['total_eventos'],'taxa_conformidade': report['taxa_conformidade_lgpd']}))
+            return report
+        except Exception as e:
+            self.logger.error(f"Falha ao gerar relatório de auditoria: {str(e)}", exc_info=True)
+            return {"error": str(e)}
+
+    def _generate_authority_report(self, df: pd.DataFrame):
+        columns_to_drop = ['user', 'risk_level', 'error_message', 'stack_trace_needed', 'service']
+        authority_df = df.drop(columns=[col for col in columns_to_drop if col in df.columns], errors='ignore').copy()
+        report_dir = os.path.dirname(self.audit_file_path)
+        if not report_dir: report_dir = "." 
+        report_path = os.path.join(report_dir, f"lgpd_authority_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        try:
+            authority_df.to_csv(report_path, index=False, encoding='utf-8')
+            os.chmod(report_path, 0o440)
+            self.log(message=f"Relatório para autoridades gerado: {report_path}", action='AUTHORITY_REPORT_GEN', sensitive_action=True)
+        except Exception as e:
+            self.logger.error(f"Falha ao gerar relatório para autoridades: {e}", exc_info=True)
+
+    def get_audit_data(self, days: int = 7) -> pd.DataFrame:
+        try:
+            if not os.path.exists(self.audit_file_path):
+                 return pd.DataFrame()
+            df = pd.read_csv(self.audit_file_path, parse_dates=['timestamp'], infer_datetime_format=True)
+            if df.empty: return pd.DataFrame()
+            df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None) 
+            cutoff = datetime.now() - timedelta(days=days)
+            return df[df['timestamp'] >= cutoff].copy()
+        except Exception as e:
+            self.logger.error(f"Falha ao recuperar dados de auditoria: {str(e)}", exc_info=True)
+            return pd.DataFrame()
+
+    def log_operation(self, dag_id: str, task_id: str, operation: str, metadata: dict = None):
+        details_msg = f"Operation: {operation}"
+        if metadata:
+            details_msg += f" | Metadata: {json.dumps(metadata)}"
+        self.log(details_msg, action=f"OP_{operation.upper()}", dag_id=dag_id, task_id=task_id)
+
+    def log_incident(self, severity: str, dag_id: str, task_id: str, error: str, stack_trace: bool = False):
+        self.log(f"INCIDENT DETECTED: {error}", level=severity.upper(), action="SECURITY_INCIDENT", dag_id=dag_id, task_id=task_id, risk_level=severity.upper(), compliance_status="LGPD_BREACH" if severity.upper() in ["CRITICAL", "URGENT", "HIGH"] else "LGPD_WARNING", error_message=error, stack_trace_needed=stack_trace)
+
+    def log_upload(self, local_path: str, minio_path: str):
+        self.log(f"File uploaded from {local_path} to {minio_path}", action="FILE_UPLOAD", details=f"Source: {local_path}, Destination: {minio_path}")
+
+    def log_transfer(self, object_key: str, source_bucket: str = 'N/A', dest_bucket: str = 'N/A'):
+        self.log(f"Object '{object_key}' transferred from '{source_bucket}' to '{dest_bucket}'", action="OBJECT_TRANSFER", details=f"Key: {object_key}, Source: {source_bucket}, Dest: {dest_bucket}")
+
+    def log_validation(self, results: dict = None, success: bool = None, stats: dict = None, failed_expectations: list = None, metadata: dict = None):
+        is_success = success
+        if is_success is None and results:
+            if isinstance(results, dict): 
+                is_success = results.get('success', False) 
+            elif hasattr(results, 'success'): 
+                 is_success = results.success
+        elif is_success is None: 
+            is_success = False 
+
+        validation_status_action = "VALIDATION_SUCCESS" if is_success else "VALIDATION_FAILURE"
+        log_level = "INFO" if is_success else "ERROR"
+        compliance = "LGPD_OK" if is_success else "LGPD_VIOLATION"
+        
+        details_dict_for_csv = {}
+        if results:
+            if isinstance(results, dict): 
+                details_dict_for_csv['ge_success'] = results.get('success')
+                details_dict_for_csv['ge_stats'] = results.get('statistics')
+                if results.get('results'):
+                    details_dict_for_csv['ge_failed_expectations'] = [r.get('expectation_config', {}).get('expectation_type', 'N/A') for r in results.get('results', []) if not r.get('success')]
+            elif hasattr(results, 'success'): 
+                details_dict_for_csv['ge_success'] = results.success
+                if hasattr(results, 'statistics'): details_dict_for_csv['ge_stats'] = results.statistics
+                if hasattr(results, 'results'): details_dict_for_csv['ge_failed_expectations'] = [r.expectation_config.expectation_type for r in results.results if not r.success]
+        else: 
+            if success is not None: details_dict_for_csv['manual_success'] = success
+            if stats: details_dict_for_csv['manual_stats'] = stats
+            if failed_expectations: details_dict_for_csv['manual_failed_expectations'] = failed_expectations
+        if metadata: details_dict_for_csv['custom_metadata'] = metadata
+        
+        details_message = json.dumps(details_dict_for_csv)
+
+        self.log(
+            message=f"Validation Status: {validation_status_action}",
+            action=validation_status_action,
+            level=log_level,
+            compliance_status=compliance, 
+            details=details_message
+        )
