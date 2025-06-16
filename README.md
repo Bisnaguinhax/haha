@@ -253,7 +253,7 @@ flowchart LR
   - `SECURITY_VAULT_SECRET_KEY` gerenciada por serviços cloud (AWS Secrets Manager, HashiCorp Vault)
   - Processo de deploy seguro para inserção de segredos
 
-### 🚀 Melhorias Propostas para Próximas Iterações
+### 🚀 Melhorias
 
 #### 1. Infraestrutura como Código (IaC)
 - **Terraform**: Automação completa de provisionamento em nuvem
