@@ -1,6 +1,3 @@
-Aqui está o README completo e formatado conforme solicitado, com todas as informações e estrutura do exemplo fornecido:
-
-```markdown
 # Pipeline de Dados Seguro: Da Ingestão à Visualização Analítica
 
 <div align="center">
