@@ -403,6 +403,7 @@ python scripts/health_check.py
 
 ```
 
+```
 ## VI. 📊 Resultados e Evidências
 
 ### 🎯 Métricas de Performance
