@@ -17,7 +17,7 @@
 </div>
 
 <div align="center">
-  <h3>🚀 Pipeline de Dados Corporativo | 🔐 Segurança Enterprise | 📊 Analytics em Tempo Real</h3>
+  <h3>🚀 Pipeline de Dados
 </div>
 
 ---
