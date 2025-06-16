@@ -62,7 +62,7 @@ A solução demonstra uma abordagem de **engenharia completa** e preparada para 
 
 A arquitetura foi desenhada para ser **totalmente contida no ambiente local**, utilizando ferramentas open-source que simulam um ecossistema de dados corporativo moderno e robusto.
 
-```mermaid
+
 graph TB
     subgraph "🌐 Fontes de Dados"
         API1[API Banco Central<br/>IPCA/Selic]
@@ -70,37 +70,37 @@ graph TB
         DS1[Dataset Olist<br/>E-commerce]
     end
     
-    subgraph "🔐 Camada de Segurança"
+ subgraph "🔐 Camada de Segurança"
         VAULT[Security Vault<br/>AES-128 Encryption]
         AUDIT[Audit Logger<br/>Rastreabilidade]
         CONN[Secure Connection Pool<br/>Runtime Credentials]
     end
     
-    subgraph "🎯 Orquestração"
+ subgraph "🎯 Orquestração"
         AF[Apache Airflow<br/>DAGs Modularizadas]
     end
     
-    subgraph "🗄️ Data Lake (MinIO)"
+  subgraph "🗄️ Data Lake (MinIO)"
         BRONZE[Bronze Layer<br/>Raw Data]
         SILVER[Silver Layer<br/>Cleansed + PII Masked]
         GOLD[Gold Layer<br/>Aggregated]
     end
     
-    subgraph "⚡ Processamento"
+  subgraph "⚡ Processamento"
         SPARK[Apache Spark<br/>Distributed Processing]
         GE[Great Expectations<br/>Quality Gates]
     end
     
-    subgraph "🏛️ Data Warehouse"
+  subgraph "🏛️ Data Warehouse"
         PG[(PostgreSQL<br/>Star Schema)]
     end
     
-    subgraph "📊 Visualização"
+  subgraph "📊 Visualização"
         ST[Streamlit Dashboard<br/>Interactive Analytics]
         GF[Grafana<br/>Monitoring]
     end
     
-    API1 --> VAULT
+   API1 --> VAULT
     API2 --> VAULT
     DS1 --> VAULT
     VAULT --> AF
@@ -114,10 +114,11 @@ graph TB
     PG --> ST
     PG --> GF
     
-    AUDIT -.->|Logs| AF
+ AUDIT -.->|Logs| AF
     CONN -.->|Credentials| SPARK
 ```
 
+```
 ### Detalhamento dos Componentes
 
 #### 🔐 Framework de Segurança (Customizado)
@@ -178,7 +179,7 @@ flowchart LR
     D --> E[5. Carga no Data Mart]
     E --> F[6. Gerenciamento de Lifecycle]
     
-    subgraph "Camada de Segurança"
+subgraph "Camada de Segurança"
         A -.-> G[Vault Credentials]
         B -.-> H[PII Masking]
         D -.-> I[Quality Gates]
@@ -186,6 +187,7 @@ flowchart LR
     end
 ```
 
+```
 #### 1. **Coleta Segura**
 - DAGs de ingestão (`dag_01_coleta_segura_v1`, `dag_coleta_dados_externos_enterprise_v1`)
 - Credenciais obtidas do Security Vault em runtime
