@@ -1,4 +1,3 @@
----
 ```markdown
 # 🚀 Pipeline de Dados Seguro: Da Ingestão à Visualização Analítica
 
