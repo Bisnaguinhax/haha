@@ -115,24 +115,7 @@ Estrutura de camadas para governança e qualidade:
 
 O pipeline é orquestrado por uma série de **DAGs no Airflow**, cada uma com responsabilidade clara e integração nativa com o framework de segurança.
 
-#### 🔄 Etapas Detalhadas do Pipeline
-
-
-flowchart LR
-    A[1. Coleta Segura] --> B[2. Consolidação e Mascaramento PII]
-    B --> C[3. Processamento Spark]
-    C --> D[4. Validação Qualidade]
-    D --> E[5. Carga no Data Mart]
-    E --> F[6. Gerenciamento de Lifecycle]
-    
-subgraph "Camada de Segurança"
-        A -.-> G[Vault Credentials]
-        B -.-> H[PII Masking]
-        D -.-> I[Quality Gates]
-        F -.-> J[Audit Logger]
-    end
 ```
-
 ```
 #### 1. **Coleta Segura**
 - DAGs de ingestão (`dag_01_coleta_segura_v1`, `dag_coleta_dados_externos_enterprise_v1`)
