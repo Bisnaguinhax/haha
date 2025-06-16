@@ -421,59 +421,8 @@ python scripts/health_check.py
 | **Airflow DAGs "Broken"** | Verifique logs do scheduler (`docker-compose logs airflow-scheduler`) |
 | **Credenciais não encontradas** | Valide execução do `setup_vault_secrets.py` e chave no `.env` |
 
-### 📦 Estrutura do Projeto
-
-```
-case-data-master-engenharia-de-dados/
-├── 📁 dags/                     # Fluxos do Airflow
-│   ├── dag_01_coleta_segura_v1.py
-│   ├── dag_03_consolidacao_e_mascaramento_v1.py
-│   ├── dag_04_processamento_spark_seguro_v1.py
-│   ├── dag_05_validacao_segura_v1.py
-│   └── ... (9 DAGs no total)
-├── 📁 plugins/                  # Framework customizado
-│   └── security_system/
-│       ├── vault_manager_helper.py  # Gestão de segredos
-│       ├── audit.py             # Sistema de auditoria
-│       ├── secure_connection_pool.py
-│       ├── exceptions.py
-│       └── key_rotation.py
-├── 📁 scripts/                  # Utilitários
-│   ├── configure.py             # Adaptação automática de paths
-│   ├── setup_vault_secrets.py   # População do Security Vault
-│   ├── health_check.py          # Teste de conectividade
-│   └── examples/                # Scripts de exemplo
-│       ├── 12-processa_vendas.py    # Job PySpark
-│       ├── 18-popular_star_schema.py
-│       └── ... (10+ exemplos)
-├── 📁 dashboard/                # App Streamlit
-│   └── app.py
-├── 📁 data/                     # Datasets
-│   └── olist/                   # Dados Olist
-├── 📁 docs/                     # Documentação
-│   └── images/                  # Imagens para README
-├── 📁 init-scripts/             # Scripts de inicialização
-│   └── entrypoint.sh
-├── 🐳 docker-compose.yml        # Definição de serviços
-├── 📋 requirements.txt          # Dependências Python
-├── ⚙️ .env.example             # Template de configuração
-└── 📖 README.md                 # Esta documentação
 ```
 
-### ✅ Checklist de Validação para a Banca
-
-- [ ] Repositório Git público e acessível
-- [ ] README.md presente e bem formatado
-- [ ] Todos os pré-requisitos claramente especificados
-- [ ] Script `configure.py` executado com sucesso
-- [ ] Serviços Docker rodando e saudáveis (`docker-compose ps`)
-- [ ] Security Vault populado corretamente
-- [ ] Airflow UI acessível em http://localhost:8080
-- [ ] DAGs visíveis na interface (sem status "Broken")
-- [ ] Pelo menos uma DAG executada com sucesso
-- [ ] Dados visíveis no MinIO Console
-- [ ] Dashboard Streamlit funcionando
-- [ ] Logs de auditoria sendo gerados (`logs/security_audit/`)
 
 ---
 
