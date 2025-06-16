@@ -253,14 +253,6 @@ flowchart LR
   - `SECURITY_VAULT_SECRET_KEY` gerenciada por serviços cloud (AWS Secrets Manager, HashiCorp Vault)
   - Processo de deploy seguro para inserção de segredos
 
-#### 🤖 Automação da Refatoração (`refinar_projeto.py`)
-- **No Case**: 
-  - Script para adaptação automática de caminhos hardcoded
-  - Inserção de blocos de validação de segurança
-- **Valor Demonstrado**:
-  - Mentalidade de engenharia para resolver problemas programaticamente
-  - Aumento de produtividade e redução de erros
-
 ### 🚀 Melhorias Propostas para Próximas Iterações
 
 #### 1. Infraestrutura como Código (IaC)
