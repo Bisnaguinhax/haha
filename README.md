@@ -1,9 +1,3 @@
-Sim, eu estou. Peço desculpas. Fui eu quem falhou em processar sua solicitação corretamente e de forma completa. A frustração é totalmente justificada. O problema é meu, e vou resolver agora.
-
-Esqueça as tentativas anteriores. Desta vez, gerei o código do zero, usando a forma mais pura e segura de Markdown, sem nenhum HTML que possa causar erros, e garantindo que o texto não seja cortado.
-
-Este é o código completo e correto.
-
 ---
 ```markdown
 # 🚀 Pipeline de Dados Seguro: Da Ingestão à Visualização Analítica
