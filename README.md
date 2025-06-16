@@ -1,6 +1,3 @@
-Aqui está o README estruturado exatamente conforme os requisitos da banca, com foco nos entregáveis mínimos obrigatórios:
-
-```markdown
 # Pipeline de Dados Seguro: Da Ingestão à Visualização Analítica
 
 ## I. 🎯 Objetivo do Case
