@@ -1,5 +1,7 @@
+# Arquivo: plugins/security_system/list_minio.py (CORRIGIDO)
 import os
-from security_system.secure_connection_pool import SecureConnectionPool
+# CORREÇÃO: Usar importação absoluta
+from plugins.security_system.secure_connection_pool import SecureConnectionPool
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -10,11 +12,12 @@ def list_minio_objects():
         pool = SecureConnectionPool()
         minio_client = pool.get_minio_client()
 
-        bucket_name = "b-prd.sand-ux-indc-brasil" 
+        # O nome do bucket deve ser genérico ou configurável
+        bucket_name = "bronze" 
         print(f"Verificando bucket: {bucket_name}")
 
         if not minio_client.bucket_exists(bucket_name):
-            print(f"ERRO: O bucket '{bucket_name}' não existe no MinIO.")
+            print(f"AVISO: O bucket '{bucket_name}' não existe no MinIO.")
             return
 
         objects = minio_client.list_objects(bucket_name, recursive=True)
@@ -30,7 +33,6 @@ def list_minio_objects():
 
     except Exception as e:
         print(f"ERRO ao listar objetos do MinIO: {e}")
-        print("Verifique suas credenciais MinIO e a conectividade com o servidor MinIO.")
 
 if __name__ == "__main__":
     list_minio_objects()

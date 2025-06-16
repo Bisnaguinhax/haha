@@ -1,3 +1,5 @@
+# Arquivo: plugins/security_system/audit.py (CORRIGIDO)
+
 import logging
 import csv
 import os
@@ -59,6 +61,25 @@ class AuditLogger:
         except Exception as e:
             print(f"FALHA CRÍTICA NO LOGGER DE AUDITORIA: {e}")
     
+    # ===========================================================================
+    # CORREÇÃO: Adicionando métodos info, warning e error para compatibilidade.
+    # ===========================================================================
+    def info(self, message: str, *args, **kwargs):
+        # O args[0] e args[1] correspondem a 'action' e 'status' que o vault.py passa
+        action = args[0] if args else 'INFO'
+        status = args[1] if len(args) > 1 else 'LGPD_NA'
+        self.log(message, level="INFO", action=action, status=status, **kwargs)
+
+    def warning(self, message: str, *args, **kwargs):
+        action = args[0] if args else 'WARNING'
+        status = args[1] if len(args) > 1 else 'LGPD_WARNING'
+        self.log(message, level="WARNING", action=action, status=status, **kwargs)
+
+    def error(self, message: str, *args, **kwargs):
+        action = args[0] if args else 'ERROR'
+        status = args[1] if len(args) > 1 else 'LGPD_BREACH'
+        self.log(message, level="ERROR", action=action, status=status, **kwargs)
+
     def generate_report(self, start_date: str, end_date: str) -> dict:
         try:
             start_dt = datetime.fromisoformat(start_date)

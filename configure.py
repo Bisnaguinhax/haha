@@ -12,7 +12,7 @@ from typing import List, Tuple, Optional
 # a integridade da estrutura resultante com backup e rollback automático.
 
 # Configurações
-PLACEHOLDER_PATH = "{{AIRFLOW_HOME}}"
+PLACEHOLDER_PATH = "C:/Users/Camila Turati/ok"
 BACKUP_DIR = ""  # Variável global para guardar o nome da pasta de backup
 LOG_FILE = "setup_configuration.log"
 

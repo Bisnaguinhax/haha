@@ -1,5 +1,5 @@
 # ===============================================================================
-# DAG DE COLETA DE DADOS EXTERNOS - DEMONSTRAÇÃO TÉCNICA
+# DAG DE COLETA DE DADOS EXTERNOS - VERSÃO CORRIGIDA
 # ===============================================================================
 # Esta DAG orquestra a ingestão de dados externos (IPCA e Clima)
 # demonstrando práticas seguras de engenharia de dados em ambiente Airflow.
@@ -9,11 +9,6 @@
 # - Uso de XComs para transmissão segura entre tasks.
 # - Estrutura modular e limpa (funções puras separadas da DAG).
 # - Auditoria e logs segregados por componente.
-#
-# 📋 INSTRUÇÕES:
-# 1. Verifique se o vault foi previamente configurado (via scripts/setup_vault_secrets.py).
-# 2. Ative esta DAG e execute-a manualmente pela interface do Airflow.
-# 3. Analise os logs de cada task para validar a segurança e orquestração.
 # ===============================================================================
 
 from __future__ import annotations
@@ -27,35 +22,42 @@ from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
 
 # ===============================================================================
-# NOTA TÉCNICA:
-# As tarefas (tasks) foram desenhadas de forma modular e desacoplada,
-# para garantir reusabilidade, testabilidade e clareza de propósito.
+# TASKS - Funções Puras e Desacopladas
 # ===============================================================================
+
 def _get_api_key_from_vault(**kwargs):
     """
     Task de segurança: acesso seguro ao vault para recuperar a chave da API.
 
     🛡️ Boa prática: Segregação da lógica de segurança da lógica de negócio.
     """
-
     # Importação localizada para isolar dependências ao escopo do Airflow
     from plugins.security_system.audit import AuditLogger
     from plugins.security_system.vault import AirflowSecurityManager
 
     print("🔐 Task de Segurança: acessando Vault...")
 
-    # Configurações do sistema de segurança (ajustáveis no setup)
-SECRET_KEY = os.getenv('SECURITY_VAULT_SECRET_KEY')
+    # --- INÍCIO DO BLOCO CORRIGIDO ---
+    
+    # 1. Obter a chave secreta do ambiente. O Airflow garante que ela estará disponível na execução.
+    SECRET_KEY = os.getenv('SECURITY_VAULT_SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("ERRO CRÍTICO: A variável de ambiente 'SECURITY_VAULT_SECRET_KEY' não está definida no ambiente de execução.")
 
-if not SECRET_KEY:
-    raise ValueError("ERRO CRÍTICO: A variável de ambiente 'SECURITY_VAULT_SECRET_KEY' não está definida.")
-    AUDIT_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/audit.csv'
-    SYSTEM_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/system.log'
-    VAULT_DB_PATH = '{{AIRFLOW_HOME}}/data/security_vault.db'
+    # 2. Usar caminhos relativos ao AIRFLOW_HOME para portabilidade dentro do Docker.
+    # A variável AIRFLOW_HOME é definida por padrão no ambiente Airflow.
+    airflow_home = os.environ.get('AIRFLOW_HOME', '/opt/airflow')
+    
+    VAULT_PATH = os.path.join(airflow_home, 'plugins', 'security_system', 'vault.json')
+    AUDIT_LOG_PATH = os.path.join(airflow_home, 'logs', 'security_audit', 'audit.csv')
+    SYSTEM_LOG_PATH = os.path.join(airflow_home, 'logs', 'security_audit', 'system.log')
 
+    # Cria o diretório de log de auditoria se não existir
+    os.makedirs(os.path.dirname(AUDIT_LOG_PATH), exist_ok=True)
+    
     # Inicialização dos componentes de segurança
     audit = AuditLogger(AUDIT_LOG_PATH, SYSTEM_LOG_PATH)
-    sec_manager = AirflowSecurityManager(VAULT_DB_PATH, SECRET_KEY, audit)
+    sec_manager = AirflowSecurityManager(VAULT_PATH, SECRET_KEY, audit)
 
     # Acesso ao segredo no Vault
     api_key = sec_manager.get_secret("openweathermap_api_key")
@@ -66,6 +68,7 @@ if not SECRET_KEY:
 
     # Transfere a chave para a próxima task de forma segura via XCom
     kwargs['ti'].xcom_push(key='api_key', value=api_key)
+    # --- FIM DO BLOCO CORRIGIDO ---
 
 def _collect_and_save_data(**kwargs):
     """
@@ -83,7 +86,10 @@ def _collect_and_save_data(**kwargs):
     if not api_key:
         raise ValueError("❌ Não foi possível obter a chave da API via XCom.")
 
-    base_path = '{{AIRFLOW_HOME}}/data'
+    # --- CORREÇÃO DO CAMINHO BASE ---
+    airflow_home = os.environ.get('AIRFLOW_HOME', '/opt/airflow')
+    base_path = os.path.join(airflow_home, 'data')
+    # --- FIM DA CORREÇÃO ---
 
     # --- Etapa 1: Coleta de dados do IPCA ---
     try:
@@ -93,9 +99,9 @@ def _collect_and_save_data(**kwargs):
         response_ipca.raise_for_status()
 
         df_ipca = pd.DataFrame(response_ipca.json())
-        caminho_ipca = f"{base_path}/indicadores"
+        caminho_ipca = os.path.join(base_path, "indicadores")
         os.makedirs(caminho_ipca, exist_ok=True)
-        df_ipca.to_csv(f"{caminho_ipca}/ipca_coletado.csv", index=False)
+        df_ipca.to_csv(os.path.join(caminho_ipca, "ipca_coletado.csv"), index=False)
 
         print("✅ IPCA salvo com sucesso.")
     except Exception as e:
@@ -124,10 +130,10 @@ def _collect_and_save_data(**kwargs):
                 "data_coleta": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
 
-        caminho_clima = f"{base_path}/clima"
+        caminho_clima = os.path.join(base_path, "clima")
         os.makedirs(caminho_clima, exist_ok=True)
         df_clima = pd.DataFrame(dados_clima)
-        df_clima.to_csv(f"{caminho_clima}/clima_coletado.csv", index=False)
+        df_clima.to_csv(os.path.join(caminho_clima, "clima_coletado.csv"), index=False)
 
         print("✅ Clima salvo com sucesso.")
     except Exception as e:

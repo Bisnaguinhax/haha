@@ -1,77 +1,52 @@
+# Arquivo: scripts/setup_vault_secrets.py (VERSÃO FINAL E CORRIGIDA)
+
+import sys
 import os
-from security_system.vault import AirflowSecurityManager
-from security_system.audit import AuditLogger
-from dotenv import load_dotenv
 
-# --- CONFIGURAÇÕES DO VAULT ---
-VAULT_DB_PATH = '/Users/felps/airflow/data/security_vault.db'
-SECRET_KEY = 'Nggk-vXHT7kr3M4VLLGeYixWcOrjMu505Q90fjzO7A0=' 
+# Adiciona o diretório raiz do projeto (/opt/airflow) ao path de busca do Python
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# --- CONFIGURAÇÕES DE LOG DE AUDITORIA ---
-AUDIT_LOG_PATH = '/Users/felps/airflow/logs/security_audit/audit.csv'
-SYSTEM_LOG_PATH = '/Users/felps/airflow/logs/security_audit/system.log'
-
-os.makedirs(os.path.dirname(AUDIT_LOG_PATH), exist_ok=True)
-os.makedirs(os.path.dirname(SYSTEM_LOG_PATH), exist_ok=True)
-
-audit_logger = AuditLogger(
-    audit_file_path=AUDIT_LOG_PATH,
-    system_log_file_path=SYSTEM_LOG_PATH
-)
-
-security_manager = AirflowSecurityManager(
-    vault_db_path=VAULT_DB_PATH,
-    secret_key=SECRET_KEY,
-    audit_logger=audit_logger
-)
+from plugins.security_system.vault_manager_helper import VaultManager
+from plugins.security_system.audit import AuditLogger
 
 def setup_secrets():
-    print(f"Configurando segredos no Vault em: {VAULT_DB_PATH}")
-    audit_logger.log("Iniciando configuração de segredos no Vault.", action="VAULT_SETUP_START")
+    """Configura o vault com as credenciais iniciais necessárias."""
+    SECRET_KEY = os.getenv('SECURITY_VAULT_SECRET_KEY')
+    if not SECRET_KEY:
+        raise ValueError("A variável de ambiente SECURITY_VAULT_SECRET_KEY não está definida.")
 
-    try:
-        # Credenciais do MinIO
-        minio_endpoint = "192.168.0.116:9000" 
-        minio_access_key = "minioadmin"   
-        minio_secret_key = "minioadmin"   
+    airflow_home = os.environ.get('AIRFLOW_HOME', '/opt/airflow')
+    VAULT_PATH = os.path.join(airflow_home, 'plugins', 'security_system', 'vault.json')
+    AUDIT_LOG_PATH = os.path.join(airflow_home, 'logs', 'security_audit', 'audit.csv')
+    SYSTEM_LOG_PATH = os.path.join(airflow_home, 'logs', 'security_audit', 'system.log')
 
-        security_manager.add_secret("minio_endpoint", minio_endpoint)
-        security_manager.add_secret("minio_access_key", minio_access_key)
-        security_manager.add_secret("minio_secret_key", minio_secret_key)
-        audit_logger.log("Credenciais MinIO adicionadas/atualizadas no Vault.", action="MINIO_SECRETS_ADD")
+    os.makedirs(os.path.dirname(AUDIT_LOG_PATH), exist_ok=True)
 
-        # Credenciais do PostgreSQL
-        pg_host = "localhost" 
-        pg_port = "5432"      
-        pg_database = "indicativos"
-        pg_user = "felipebonatti"   
-        pg_password = "senha123" 
+    logger = AuditLogger(AUDIT_LOG_PATH, SYSTEM_LOG_PATH)
 
-        security_manager.add_secret("postgresql_host", pg_host)
-        security_manager.add_secret("postgresql_port", pg_port)
-        security_manager.add_secret("postgresql_database", pg_database)
-        security_manager.add_secret("postgresql_user", pg_user)
-        security_manager.add_secret("postgresql_password", pg_password)
-        audit_logger.log("Credenciais PostgreSQL adicionadas/atualizadas no Vault.", action="PG_SECRETS_ADD")
+    vault_manager = VaultManager(vault_path=VAULT_PATH, secret_key=SECRET_KEY, logger=logger)
 
-        # Credencial do OpenWeatherMap
-        openweathermap_api_key = "15f9495b6a74288062831e78c8d8b248" 
-        security_manager.add_secret("openweathermap_api_key", openweathermap_api_key)
-        audit_logger.log("Chave OpenWeatherMap adicionada/atualizada no Vault.", action="OPENWEATHERMAP_SECRET_ADD")
+    secrets_to_add = {
+        "minio_local_credentials": {
+            "endpoint_url": "minio:9000",
+            "access_key": "admin",
+            "secret_key": "minio_secure_2024"
+        },
+        "openweathermap_api_key": "SUA_CHAVE_DE_API_AQUI",
+        "postgres_local_credentials": {
+            "host": "postgres",
+            "port": "5432",
+            "database": "airflow_warehouse",
+            "user": "airflow_user",
+            "password": "secure_password_2024"
+        }
+    }
 
-        print("Segredos configurados com sucesso no Vault.")
-        audit_logger.log("Configuração de segredos no Vault concluída com sucesso.", action="VAULT_SETUP_SUCCESS")
+    for key, value in secrets_to_add.items():
+        vault_manager.set_secret(key, value)
+        print(f"Segredo '{key}' adicionado/atualizado no vault.")
 
-    except Exception as e:
-        print(f"Erro ao configurar segredos: {e}")
-        audit_logger.log(
-            f"Erro na configuração de segredos do Vault: {e}",
-            level="CRITICAL",
-            action="VAULT_SETUP_FAIL",
-            error_message=str(e),
-            stack_trace_needed=True
-        )
+    print("\nConfiguração de segredos do Vault concluída com sucesso!")
 
 if __name__ == "__main__":
     setup_secrets()
-

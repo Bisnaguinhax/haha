@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # ===================================================================================
 # DAG DE CONSOLIDAÇÃO E MASCARAMENTO DE DADOS (PII) - DEMONSTRAÇÃO
 # ===================================================================================
@@ -14,13 +16,13 @@
 # 2. Compare as colunas `customer_city` e `customer_state` com os dados originais.
 # ===================================================================================
 
-from __future__ import annotations
 import pendulum
 import os
 import pandas as pd
 
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
+from airflow import settings # Importado para obter o AIRFLOW_HOME dinamicamente
 
 def _consolidar_e_proteger_dados(**kwargs):
     """Consolida os datasets da Olist e aplica mascaramento em PII."""
@@ -30,12 +32,16 @@ def _consolidar_e_proteger_dados(**kwargs):
 
     # Inicializa componentes de segurança
     SECRET_KEY = os.getenv('SECURITY_VAULT_SECRET_KEY')
-
-if not SECRET_KEY:
-    raise ValueError("ERRO CRÍTICO: A variável de ambiente 'SECURITY_VAULT_SECRET_KEY' não está definida.")
-    AUDIT_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/audit.csv'
-    SYSTEM_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/system.log'
-    VAULT_DB_PATH = '{{AIRFLOW_HOME}}/data/security_vault.db'
+    if not SECRET_KEY:
+        raise ValueError("A variável de ambiente SECURITY_VAULT_SECRET_KEY não está definida.")
+    
+    # Obtém o caminho base do Airflow de forma programática
+    airflow_home = settings.AIRFLOW_HOME
+    
+    # Constrói os caminhos de forma segura e correta
+    AUDIT_LOG_PATH = os.path.join(airflow_home, 'logs', 'security_audit', 'audit.csv')
+    SYSTEM_LOG_PATH = os.path.join(airflow_home, 'logs', 'security_audit', 'system.log')
+    VAULT_DB_PATH = os.path.join(airflow_home, 'data', 'security_vault.db')
     
     audit = AuditLogger(AUDIT_LOG_PATH, SYSTEM_LOG_PATH)
     sec_manager = AirflowSecurityManager(VAULT_DB_PATH, SECRET_KEY, audit)
@@ -44,7 +50,7 @@ if not SECRET_KEY:
     dag_id = kwargs['dag_run'].dag_id
     audit.log("Iniciando consolidação e proteção de dados.", action="CONSOLIDATION_START", dag_id=dag_id)
     
-    base_path = '{{AIRFLOW_HOME}}/data/olist'
+    base_path = os.path.join(airflow_home, 'data', 'olist')
 
     try:
         print("Lendo datasets da Olist...")
@@ -82,7 +88,7 @@ if not SECRET_KEY:
         )
         print("   -> Coluna 'customer_state' mascarada com hash.")
 
-        caminho_saida = f'{base_path}/dados_consolidados_mascarados.csv'
+        caminho_saida = os.path.join(base_path, 'dados_consolidados_mascarados.csv')
         dados_mascarados.to_csv(caminho_saida, index=False)
         print(f"\n✅ Ficheiro consolidado e mascarado salvo em: {caminho_saida}")
         audit.log(f"Ficheiro mascarado salvo: {caminho_saida}", action="SAVE_MASKED_FILE_SUCCESS", dag_id=dag_id)

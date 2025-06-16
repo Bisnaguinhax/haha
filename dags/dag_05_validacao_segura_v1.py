@@ -9,7 +9,8 @@
 # - Uso de exceções customizadas para falhar a task de forma informativa.
 #
 # 📌 INSTRUÇÕES:
-# 1. Garanta que o ficheiro `dados_consolidados.csv` existe.
+# 1. Garanta que o ficheiro `dados_consolidados.csv` existe na sua pasta local `data/olist`.
+#    (O Docker irá espelhar esta pasta para dentro do contêiner).
 # 2. Garanta que a suíte de expectativas `vendas.json` está na pasta `dags/expectations`.
 # 3. Execute a DAG para verificar a qualidade dos dados.
 # ===================================================================================
@@ -19,45 +20,51 @@ import pendulum
 import great_expectations as ge
 import json
 import os
-
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
 
+# Define os caminhos relativos ao ambiente Airflow dentro do Docker
+# A pasta raiz do Airflow no contêiner é /opt/airflow/
+AIRFLOW_HOME = os.getenv('AIRFLOW_HOME', '/opt/airflow')
+
 def _valida_vendas_ge(**kwargs):
     """Executa uma suíte de validação do Great Expectations com auditoria completa."""
+    # Importa os módulos customizados do seu plugin
     from plugins.security_system.audit import AuditLogger
     from plugins.security_system.exceptions import ValidationError
-
-    # Configuração da auditoria
-    AUDIT_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/audit.csv'
-    SYSTEM_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/system.log'
+    
+    # --- CORREÇÃO: Caminhos ajustados para o ambiente Docker ---
+    AUDIT_LOG_PATH = f'{AIRFLOW_HOME}/logs/security_audit/audit.csv'
+    SYSTEM_LOG_PATH = f'{AIRFLOW_HOME}/logs/security_audit/system.log'
     audit = AuditLogger(AUDIT_LOG_PATH, SYSTEM_LOG_PATH)
     
     dag_id = kwargs.get('dag_run').dag_id
     audit.log("Iniciando task de validação de dados.", action="GE_VALIDATION_START", dag_id=dag_id)
     
     try:
-        caminho_dados = "{{AIRFLOW_HOME}}/data/olist/dados_consolidados.csv"
-        caminho_expectations = "{{AIRFLOW_HOME}}/dags/expectations/vendas.json"
-
+        # --- CORREÇÃO: Caminhos ajustados para o ambiente Docker ---
+        # Certifique-se de que a pasta 'data' está montada no seu docker-compose.yml
+        caminho_dados = f"{AIRFLOW_HOME}/data/olist/dados_consolidados.csv"
+        caminho_expectations = f"{AIRFLOW_HOME}/dags/expectations/vendas.json"
+        
         print(f"📄 Carregando dados de: {caminho_dados}")
         df = ge.read_csv(caminho_dados)
-
+        
         print(f"📦 Lendo suíte de expectativas de: {caminho_expectations}")
         with open(caminho_expectations, "r") as f:
             expectation_suite = json.load(f)
-
+        
         print("⚙️ Executando validação...")
         validation_result = df.validate(expectation_suite=expectation_suite)
         
         # Usa a função de log de validação customizada
         audit.log_validation(results=validation_result.to_json_dict(), metadata={"fonte_dados": caminho_dados})
-
+        
         if not validation_result["success"]:
             raise ValidationError("Validação de dados com Great Expectations falhou!")
-
+        
         print("✅ Validação concluída com sucesso.")
-
+        
     except FileNotFoundError as e:
         error_msg = f"Erro de ficheiro não encontrado durante a validação: {e}"
         audit.log(error_msg, level="CRITICAL", action="GE_VALIDATION_FILE_NOT_FOUND", dag_id=dag_id)
@@ -70,7 +77,7 @@ def _valida_vendas_ge(**kwargs):
 with DAG(
     dag_id="dag_05_validacao_segura_v1",
     start_date=pendulum.datetime(2025, 6, 10, tz="UTC"),
-    schedule="0 2 * * *", # Diariamente às 2h
+    schedule="0 2 * * *",  # Diariamente às 2h
     catchup=False,
     doc_md="### Validação de Dados com Great Expectations\nExecuta testes de qualidade de dados no dataset consolidado.",
     tags=['validation', 'quality', 'great_expectations'],

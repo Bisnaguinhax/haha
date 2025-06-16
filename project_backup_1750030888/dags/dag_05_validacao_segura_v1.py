@@ -50,7 +50,8 @@ def _valida_vendas_ge(**kwargs):
         print("⚙️ Executando validação...")
         validation_result = df.validate(expectation_suite=expectation_suite)
         
-        audit.log_validation(results=validation_result, metadata={"fonte_dados": caminho_dados})
+        # Usa a função de log de validação customizada
+        audit.log_validation(results=validation_result.to_json_dict(), metadata={"fonte_dados": caminho_dados})
 
         if not validation_result["success"]:
             raise ValidationError("Validação de dados com Great Expectations falhou!")
@@ -67,7 +68,7 @@ def _valida_vendas_ge(**kwargs):
         raise
 
 with DAG(
-    dag_id="dag_validacao_segura_v1",
+    dag_id="dag_05_validacao_segura_v1",
     start_date=pendulum.datetime(2025, 6, 10, tz="UTC"),
     schedule="0 2 * * *", # Diariamente às 2h
     catchup=False,

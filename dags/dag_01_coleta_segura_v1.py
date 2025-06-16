@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # ===================================================================================
 # DAG DE COLETA SEGURA COM AUDITORIA COMPLETA - DEMONSTRAÇÃO
 # ===================================================================================
@@ -14,9 +16,8 @@
 # 2. Execute a DAG e analise os logs do Airflow e os ficheiros de auditoria gerados.
 # ===================================================================================
 
-from __future__ import annotations
-import pendulum
 import os
+import pendulum
 import requests
 import pandas as pd
 from datetime import datetime
@@ -24,18 +25,22 @@ from datetime import datetime
 from airflow.models.dag import DAG
 from airflow.operators.python import PythonOperator
 
+# Obtém o diretório home do Airflow a partir da variável de ambiente
+AIRFLOW_HOME = os.getenv('AIRFLOW_HOME', '/opt/airflow')
+
 def _get_security_components():
     """Helper para inicializar e retornar os componentes de segurança."""
     from plugins.security_system.audit import AuditLogger
     from plugins.security_system.vault import AirflowSecurityManager
     
     SECRET_KEY = os.getenv('SECURITY_VAULT_SECRET_KEY')
-
-if not SECRET_KEY:
-    raise ValueError("ERRO CRÍTICO: A variável de ambiente 'SECURITY_VAULT_SECRET_KEY' não está definida.")
-    AUDIT_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/audit.csv'
-    SYSTEM_LOG_PATH = '{{AIRFLOW_HOME}}/logs/security_audit/system.log'
-    VAULT_DB_PATH = '{{AIRFLOW_HOME}}/data/security_vault.db'
+    if not SECRET_KEY:
+        raise ValueError("A variável de ambiente SECURITY_VAULT_SECRET_KEY não está definida.")
+    
+    # Define caminhos de forma dinâmica usando a variável AIRFLOW_HOME
+    AUDIT_LOG_PATH = os.path.join(AIRFLOW_HOME, 'logs', 'security_audit', 'audit.csv')
+    SYSTEM_LOG_PATH = os.path.join(AIRFLOW_HOME, 'logs', 'security_audit', 'system.log')
+    VAULT_DB_PATH = os.path.join(AIRFLOW_HOME, 'data', 'security_vault.db')
     
     audit = AuditLogger(audit_file_path=AUDIT_LOG_PATH, system_log_file_path=SYSTEM_LOG_PATH)
     sec_manager = AirflowSecurityManager(vault_db_path=VAULT_DB_PATH, secret_key=SECRET_KEY, audit_logger=audit)
@@ -49,13 +54,16 @@ def _coleta_ipca(**kwargs):
     
     audit.log("Iniciando coleta do IPCA.", action="COLETA_IPCA_START", dag_id=dag_id)
     try:
-        base_path = '{{AIRFLOW_HOME}}/data/indicadores'
+        base_path = os.path.join(AIRFLOW_HOME, 'data', 'indicadores')
         os.makedirs(base_path, exist_ok=True)
+        
         url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json"
         response = requests.get(url, timeout=10)
         response.raise_for_status()
+        
         df = pd.DataFrame(response.json())
-        df.to_csv(f"{base_path}/ipca_coletado.csv", index=False)
+        df.to_csv(os.path.join(base_path, "ipca_coletado.csv"), index=False)
+        
         audit.log("Dados do IPCA coletados com sucesso.", action="COLETA_IPCA_SUCCESS", dag_id=dag_id)
     except Exception as e:
         audit.log(f"Erro na coleta do IPCA: {e}", level="ERROR", action="COLETA_IPCA_FAIL", dag_id=dag_id)
@@ -69,10 +77,12 @@ def _coleta_clima(**kwargs):
     audit.log("Iniciando coleta de dados climáticos.", action="COLETA_CLIMA_START", dag_id=dag_id)
     try:
         api_key = sec_manager.get_secret("openweathermap_api_key")
-        if not api_key: raise ValueError("Chave 'openweathermap_api_key' não encontrada no Vault.")
+        if not api_key: 
+            raise ValueError("Chave 'openweathermap_api_key' não encontrada no Vault.")
         
-        base_path = '{{AIRFLOW_HOME}}/data/clima'
+        base_path = os.path.join(AIRFLOW_HOME, 'data', 'clima')
         os.makedirs(base_path, exist_ok=True)
+        
         cidades = {"São Paulo": 3448439, "Rio de Janeiro": 3451190}
         dados = []
         for cidade, codigo in cidades.items():
@@ -82,7 +92,7 @@ def _coleta_clima(**kwargs):
             clima = response.json()
             dados.append({"cidade": cidade, "temperatura": clima["main"]["temp"], "condicao": clima["weather"][0]["description"]})
         
-        pd.DataFrame(dados).to_csv(f"{base_path}/clima_coletado.csv", index=False)
+        pd.DataFrame(dados).to_csv(os.path.join(base_path, "clima_coletado.csv"), index=False)
         audit.log("Dados climáticos coletados com sucesso.", action="COLETA_CLIMA_SUCCESS", dag_id=dag_id)
     except Exception as e:
         audit.log(f"Erro na coleta de dados climáticos: {e}", level="ERROR", action="COLETA_CLIMA_FAIL", dag_id=dag_id)
@@ -97,8 +107,14 @@ with DAG(
     tags=['ingestao', 'seguranca', 'auditoria']
 ) as dag:
     
-    tarefa_ipca = PythonOperator(task_id='coleta_ipca_segura_task', python_callable=_coleta_ipca)
-    tarefa_clima = PythonOperator(task_id='coleta_clima_segura_task', python_callable=_coleta_clima)
+    tarefa_ipca = PythonOperator(
+        task_id='coleta_ipca_segura_task',
+        python_callable=_coleta_ipca
+    )
+    
+    tarefa_clima = PythonOperator(
+        task_id='coleta_clima_segura_task',
+        python_callable=_coleta_clima
+    )
 
-    # As tarefas podem rodar em paralelo
-    [tarefa_ipca, tarefa_clima]
+# Nenhuma dependência explícita é necessária, pois as tarefas podem rodar em paralelo.
