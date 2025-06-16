@@ -369,10 +369,10 @@ streamlit run dashboard/app.py --server.port 8501
 ### 🔍 Verificação da Instalação
 
 #### URLs de Acesso
-- **Airflow UI**: http://localhost:8080 (admin/admin)
-- **MinIO Console**: http://localhost:9001 (minioadmin/minio_secure_2024)
+- **Airflow UI**: http://localhost:8080 
+- **MinIO Console**: http://localhost:9001 
 - **Streamlit Dashboard**: http://localhost:8501
-- **Grafana**: http://localhost:3000 (admin/admin)
+- **Grafana**: http://localhost:3000 
 
 #### Testes de Conectividade
 ```bash
