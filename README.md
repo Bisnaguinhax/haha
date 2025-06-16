@@ -170,7 +170,7 @@ O pipeline é orquestrado por uma série de **DAGs no Airflow**, cada uma com re
 
 #### 🔄 Etapas Detalhadas do Pipeline
 
-```mermaid
+
 flowchart LR
     A[1. Coleta Segura] --> B[2. Consolidação e Mascaramento PII]
     B --> C[3. Processamento Spark]
@@ -402,9 +402,6 @@ python scripts/health_check.py
 | **Credenciais não encontradas** | Valide execução do `setup_vault_secrets.py` e chave no `.env` |
 
 ```
-
-
----
 
 ## VI. 📊 Resultados e Evidências
 
