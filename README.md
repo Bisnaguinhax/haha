@@ -62,60 +62,6 @@ A solução demonstra uma abordagem de **engenharia completa** e preparada para 
 
 A arquitetura foi desenhada para ser **totalmente contida no ambiente local**, utilizando ferramentas open-source que simulam um ecossistema de dados corporativo moderno e robusto.
 
-
-graph TB
-    subgraph "🌐 Fontes de Dados"
-        API1[API Banco Central<br/>IPCA/Selic]
-        API2[API OpenWeather<br/>Dados Climáticos]
-        DS1[Dataset Olist<br/>E-commerce]
-    end
-    
- subgraph "🔐 Camada de Segurança"
-        VAULT[Security Vault<br/>AES-128 Encryption]
-        AUDIT[Audit Logger<br/>Rastreabilidade]
-        CONN[Secure Connection Pool<br/>Runtime Credentials]
-    end
-    
- subgraph "🎯 Orquestração"
-        AF[Apache Airflow<br/>DAGs Modularizadas]
-    end
-    
-  subgraph "🗄️ Data Lake (MinIO)"
-        BRONZE[Bronze Layer<br/>Raw Data]
-        SILVER[Silver Layer<br/>Cleansed + PII Masked]
-        GOLD[Gold Layer<br/>Aggregated]
-    end
-    
-  subgraph "⚡ Processamento"
-        SPARK[Apache Spark<br/>Distributed Processing]
-        GE[Great Expectations<br/>Quality Gates]
-    end
-    
-  subgraph "🏛️ Data Warehouse"
-        PG[(PostgreSQL<br/>Star Schema)]
-    end
-    
-  subgraph "📊 Visualização"
-        ST[Streamlit Dashboard<br/>Interactive Analytics]
-        GF[Grafana<br/>Monitoring]
-    end
-    
-   API1 --> VAULT
-    API2 --> VAULT
-    DS1 --> VAULT
-    VAULT --> AF
-    AF --> BRONZE
-    BRONZE --> SPARK
-    SPARK --> SILVER
-    SILVER --> SPARK
-    SPARK --> GOLD
-    GOLD --> GE
-    GE --> PG
-    PG --> ST
-    PG --> GF
-    
- AUDIT -.->|Logs| AF
-    CONN -.->|Credentials| SPARK
 ```
 
 ```
